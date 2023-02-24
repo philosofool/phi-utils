@@ -69,15 +69,16 @@ def reorder_cols(df, left: list, right: list):
     return df[left + other + right]
 
 def test_col_cleaners():
-    test_df = pd.DataFrame({'abc': [1], 'xyz': [2]})
-    assert 'xy' in col_strip('z')(test_df).columns 
-    assert 'def' in col_replace('abc', 'def')(test_df)
-    assert 'ab' in col_truncate(2)(test_df)
-    assert 'cba' in col_lambda_clean(lambda x: ''.join(reversed(x)))(test_df)
+    df = pd.DataFrame({'abc': [1], 'xyz': [2]})
+    assert 'xy' in col_strip(df, 'z').columns 
+    assert 'def' in col_replace(df, 'abc', 'def')
+    assert 'ab' in col_truncate(df, 2)
+    assert 'cba' in col_lambda_clean(df, lambda x: ''.join(reversed(x)))
 
 def test_reorder_cols():
-    test_df = pd.DataFrame({'abc': [1], 'xyz': [2]})
-    assert reorder_cols(['xyz'], [])(test_df).columns.to_list() == ['xyz', 'abc']
+    df = pd.DataFrame({'abc': [1], 'xyz': [2]})
+    assert reorder_cols(df, ['xyz'], []).columns.to_list() == ['xyz', 'abc']
 
-test_col_cleaners()
-test_reorder_cols()
+if __name__ == '__main__':
+    test_col_cleaners()
+    test_reorder_cols()
