@@ -72,7 +72,7 @@ class MetricGraph:
     def add_metrics(self, df: pd.DataFrame, metrics: Iterable[Hashable]) -> pd.DataFrame:
         """Add the metrics to a dataframe."""
         calculated_metrics = self.calculate_metrics(df, metrics)
-        return df.assign(calculated_metrics)  # type: ignore Pandas is not hinted for assign, but accepts dicts.
+        return df.assign(**calculated_metrics)  # type: ignore Pandas is not hinted for assign, but accepts dicts.
 
 
     def get_metric_dependencies(self, metrics: Iterable[Hashable]) -> set:
