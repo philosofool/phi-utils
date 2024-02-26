@@ -48,7 +48,7 @@ class MetricGraph:
             dependency_graph[key] = deps
         return cls(dependency_graph, metric_functions)
 
-    def calculate_metric(self, metric: Hashable, calculated_metrics: Mapping[Any, ArrayLike]) -> ArrayLike:
+    def _calculate_metric(self, metric: Hashable, calculated_metrics: Mapping[Any, ArrayLike]) -> ArrayLike:
         """Calculate metric."""
         calculator = self.metric_functions[metric]
         dependencies = self.dependency_graph[metric]
@@ -64,7 +64,7 @@ class MetricGraph:
         for metric in sorted_metrics_and_dependencies:
             match df.get(metric):
                 case None:
-                    calculated_metrics[metric] = self.calculate_metric(metric, calculated_metrics)
+                    calculated_metrics[metric] = self._calculate_metric(metric, calculated_metrics)
                 case value:
                     calculated_metrics[metric] = value
         return {metric: calculated_metrics[metric] for metric in metrics}
