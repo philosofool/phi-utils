@@ -10,8 +10,11 @@ def test_get_ancestors():
     graph = {'a': ('b', 'c', 'd'), 'c': ('b', 'e'), 'd': ('e', 'f')}
     result = get_ancestors(value, graph)
     expected = {'f', 'd', 'b', 'c', 'e'}
-    assert result == expected
+    assert result == expected, f"Got {result}"
 
+    cyclic_graph = {'a': ('b',), 'b': ('a',)}
+    assert 'a' in get_ancestors('a', cyclic_graph)
+    assert 'a' in get_ancestors('a', {'a': ('a',)})
 
 def test_MetricGraph():
     """Test of MetricGraph."""

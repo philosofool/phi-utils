@@ -8,20 +8,18 @@ import numpy as np  # noqa: F401
 import pandas as pd
 from numpy.typing import ArrayLike
 
-# from philosofool.functional.functional import compose_function
 
-
-def get_ancestors(value: Hashable, graph: Mapping[Any, Iterable], seen=None) -> set:
-    """Return all ancestors of `value` from an acyclic graph."""
-    seen = seen or set()
-    predecessors = graph.get(value, set())
-    if predecessors:
-        for predecessor in predecessors:
-            if predecessor in seen:
-                continue
-            seen.add(predecessor)
-            seen.update(get_ancestors(predecessor, graph, seen=seen))
-    return seen
+def get_ancestors(value: Hashable, graph: dict[Any, Iterable], ancestors=set()) -> set:
+    """Return all ancestors of `value` from a directed graph."""
+    ancestors = ancestors.copy()
+    graph = graph.copy()
+    predecessors = graph.get(value, [])
+    for predecessor in predecessors:
+        if predecessor in ancestors:
+            continue
+        ancestors.add(predecessor)
+        ancestors.update(get_ancestors(predecessor, graph, ancestors=ancestors))
+    return ancestors
 
 
 class MetricGraph:
@@ -79,7 +77,7 @@ class MetricGraph:
         """Get the dependencies needed to calculate metrics."""
         dependencies = set()
         for metric in metrics:
-            metric_ancestors = get_ancestors(metric, self.dependency_graph, seen=dependencies)
+            metric_ancestors = get_ancestors(metric, self.dependency_graph, ancestors=dependencies)
             dependencies = dependencies.union(metric_ancestors)
         return dependencies
 
