@@ -30,6 +30,29 @@ class MetricGraph:
 
     Follows standard graphlib conventions: a graph is a mapping from Hashable elements to
     a Hashable sequence.
+
+    Attributes
+    ----------
+        dependency_graph
+            The model of dependency: A mapping from hashable values to a sequence of hashable values.
+        metric_functions
+            Mapping of metrics from the graph to functions that calculate them.
+
+            This assumes that the ordering of dependencies corresponds to the order in the dependency graph.
+
+    Class Methods
+    -------------
+        from_model:
+           Construct an instance from a model: a mapping from names to a pair of a function and a dependency list.
+
+    Methods
+    -------
+        calculate_metrics:
+           Compute the metrics from a DataFrame.
+        add_metrics:
+            Add metric calculations to a DataFrame.
+        get_metric_dependencies:
+            Find all metrics required to compute a metric.
     """
 
     def __init__(self, dependency_graph: Mapping[Any, tuple[Hashable, ...]], metric_functions: Mapping[Any, Callable]):
@@ -71,7 +94,6 @@ class MetricGraph:
         """Add the metrics to a dataframe."""
         calculated_metrics = self.calculate_metrics(df, metrics)
         return df.assign(**calculated_metrics)  # type: ignore Pandas is not hinted for assign, but accepts dicts.
-
 
     def get_metric_dependencies(self, metrics: Iterable[Hashable]) -> set:
         """Get the dependencies needed to calculate metrics."""
