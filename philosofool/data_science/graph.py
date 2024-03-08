@@ -90,6 +90,11 @@ class MetricGraph:
                     calculated_metrics[metric] = value
         return {metric: calculated_metrics[metric] for metric in metrics}
 
+    @property
+    def metrics(self) -> tuple:
+        """Return the metrics in the graph, which are topologically sorted."""
+        return tuple(self._topologically_sorted_metrics())
+
     def add_metrics(self, df: pd.DataFrame, metrics: Iterable[Hashable]) -> pd.DataFrame:
         """Add the metrics to a dataframe."""
         calculated_metrics = self.calculate_metrics(df, metrics)
