@@ -76,6 +76,11 @@ class MetricGraph:
         data = [calculated_metrics[metric] for metric in dependencies]
         return calculator(*data)
 
+    def model(self, metrics: Optional[Iterable] = None) -> dict:
+        if metrics is None:
+            metrics = list(self.dependency_graph)
+        return {metric: (self.metric_functions[metric], self.dependency_graph[metric]) for metric in metrics}
+
     def calculate_metrics(self, df: pd.DataFrame, metrics: Iterable[Hashable]) -> Mapping[Any, ArrayLike]:
         """Calculate the metrics from dataframe."""
         sorted_metrics_and_dependencies = self._sort_metrics_topologically(
