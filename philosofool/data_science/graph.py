@@ -99,6 +99,9 @@ class MetricGraph:
                 case value:
                     calculated_metrics[metric] = value
         return {metric: calculated_metrics[metric] for metric in metrics}
+
+    def recalculate_metrics(self, df: pd.DataFrame, metrics: Iterable[Hashable]) -> Mapping[Any, ArrayLike]:
+        """Recalculate the metrics from dataframe."""
         sorted_metrics_and_dependencies = self._sort_metrics_topologically(
             self.get_metric_dependencies(metrics).union(metrics)
         )
