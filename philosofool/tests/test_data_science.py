@@ -22,6 +22,7 @@ def test_MetricGraph():
     metric_dependencies = {
         'BA': ('H', 'AB'),  # batting average: hits, at bats
         'AB': ('PA', 'BB'),  # At bats: (Plate appearances, base on balls (walks))
+        'H': ('1B', '2B', '3B', 'HR')  # Hits exists in calcs below.
     }
     metric_functions = {
         'BA': np.divide,
@@ -35,6 +36,7 @@ def test_MetricGraph():
     })
     metric_graph = MetricGraph(metric_dependencies, metric_functions)
     result = metric_graph.calculate_metrics(data, ['BA'])
+    assert 'AB' not in result
     assert np.allclose(result['BA'], np.divide([170, 150], [600 - 80, 600 - 100])), f"got {result}"
     result_add = metric_graph.add_metrics(data, ['BA','AB'])
     assert all(k in result_add for k in ['BA', 'AB'])

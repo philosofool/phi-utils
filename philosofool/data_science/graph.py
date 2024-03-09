@@ -1,8 +1,9 @@
 """Functions for working with graphs"""
 
 from collections.abc import Hashable, Iterable, Mapping, Callable
+import functools
 from graphlib import TopologicalSorter
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np  # noqa: F401
 import pandas as pd
@@ -62,12 +63,17 @@ class MetricGraph:
     @classmethod
     def from_model(cls, model: Mapping[Any, tuple[Callable, tuple[Hashable, ...]]]) -> 'MetricGraph':
         """Construct an instance from a mapping of keys to the metric function and dependency names."""
+        metric_functions, dependency_graph = cls.model_to_graph_and_functions(model)
+        return cls(dependency_graph, metric_functions)
+
+    @classmethod
+    def model_to_graph_and_functions(cls, model:  Mapping[Any, tuple[Callable, tuple[Hashable, ...]]]) -> tuple[dict[Any, Callable], dict[Any, tuple[Hashable, ...]]]:
         metric_functions = {}
         dependency_graph = {}
         for key, (fn, deps) in model.items():
             metric_functions[key] = fn
             dependency_graph[key] = deps
-        return cls(dependency_graph, metric_functions)
+        return metric_functions, dependency_graph
 
     def _calculate_metric(self, metric: Hashable, calculated_metrics: Mapping[Any, ArrayLike]) -> ArrayLike:
         """Calculate metric."""
@@ -76,8 +82,26 @@ class MetricGraph:
         data = [calculated_metrics[metric] for metric in dependencies]
         return calculator(*data)
 
+    def model(self, metrics: Optional[Iterable] = None) -> dict:
+        if metrics is None:
+            metrics = list(self.dependency_graph)
+        return {metric: (self.metric_functions[metric], self.dependency_graph[metric]) for metric in metrics}
+
     def calculate_metrics(self, df: pd.DataFrame, metrics: Iterable[Hashable]) -> Mapping[Any, ArrayLike]:
         """Calculate the metrics from dataframe."""
+        dependencies = functools.reduce(lambda a, b: a.union(get_ancestors(b, self.dependency_graph, a)), metrics, set(df.columns.intersection(self.dependency_graph)))
+        sorted_metrics_and_dependencies = self._sort_metrics_topologically(dependencies.union(metrics))
+        calculated_metrics = {}
+        for metric in sorted_metrics_and_dependencies:
+            match df.get(metric):
+                case None:
+                    calculated_metrics[metric] = self._calculate_metric(metric, calculated_metrics)
+                case value:
+                    calculated_metrics[metric] = value
+        return {metric: calculated_metrics[metric] for metric in metrics}
+
+    def recalculate_metrics(self, df: pd.DataFrame, metrics: Iterable[Hashable]) -> Mapping[Any, ArrayLike]:
+        """Recalculate the metrics from dataframe."""
         sorted_metrics_and_dependencies = self._sort_metrics_topologically(
             self.get_metric_dependencies(metrics).union(metrics)
         )
@@ -89,6 +113,11 @@ class MetricGraph:
                 case value:
                     calculated_metrics[metric] = value
         return {metric: calculated_metrics[metric] for metric in metrics}
+
+    @property
+    def metrics(self) -> tuple:
+        """Return the metrics in the graph, which are topologically sorted."""
+        return tuple(self._topologically_sorted_metrics())
 
     def add_metrics(self, df: pd.DataFrame, metrics: Iterable[Hashable]) -> pd.DataFrame:
         """Add the metrics to a dataframe."""
