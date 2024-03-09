@@ -2,7 +2,7 @@
 
 from collections.abc import Hashable, Iterable, Mapping, Callable
 from graphlib import TopologicalSorter
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np  # noqa: F401
 import pandas as pd
@@ -62,12 +62,17 @@ class MetricGraph:
     @classmethod
     def from_model(cls, model: Mapping[Any, tuple[Callable, tuple[Hashable, ...]]]) -> 'MetricGraph':
         """Construct an instance from a mapping of keys to the metric function and dependency names."""
+        metric_functions, dependency_graph = cls.model_to_graph_and_functions(model)
+        return cls(dependency_graph, metric_functions)
+
+    @classmethod
+    def model_to_graph_and_functions(cls, model:  Mapping[Any, tuple[Callable, tuple[Hashable, ...]]]) -> tuple[dict[Any, Callable], dict[Any, tuple[Hashable, ...]]]:
         metric_functions = {}
         dependency_graph = {}
         for key, (fn, deps) in model.items():
             metric_functions[key] = fn
             dependency_graph[key] = deps
-        return cls(dependency_graph, metric_functions)
+        return metric_functions, dependency_graph
 
     def _calculate_metric(self, metric: Hashable, calculated_metrics: Mapping[Any, ArrayLike]) -> ArrayLike:
         """Calculate metric."""
