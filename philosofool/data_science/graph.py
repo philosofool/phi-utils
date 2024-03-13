@@ -110,11 +110,7 @@ class MetricGraph:
         )
         calculated_metrics = {}
         for metric in sorted_metrics_and_dependencies:
-            match df.get(metric):
-                case None:
-                    calculated_metrics[metric] = self._calculate_metric(metric, calculated_metrics)
-                case value:
-                    calculated_metrics[metric] = value
+            calculated_metrics[metric] = self._calculate_metric(metric, calculated_metrics)
         return {metric: calculated_metrics[metric] for metric in metrics}
 
     @property
@@ -135,9 +131,11 @@ class MetricGraph:
             dependencies = dependencies.union(metric_ancestors)
         return dependencies
 
-    def _topologically_sorted_metrics(self) -> Mapping[Any, int]:
+
+    def _topologically_sorted_metrics(self) -> dict[Any, int]:
         sorted_metrics = TopologicalSorter(self.dependency_graph).static_order()
         return {metric: i for i, metric in enumerate(sorted_metrics)}
 
     def _sort_metrics_topologically(self, metrics: Iterable[Hashable]) -> list[Hashable]:
-        return sorted(metrics, key=lambda metric: self._topologically_sorted_metrics()[metric])
+        _top_sorted_metrics = self._topologically_sorted_metrics()
+        return sorted(metrics, key=lambda metric: _top_sorted_metrics[metric])
