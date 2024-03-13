@@ -44,12 +44,16 @@ class MetricGraph:
     Class Methods
     -------------
         from_model:
-           Construct an instance from a model: a mapping from names to a pair of a function and a dependency list.
+           Construct an instance from a model, i.e., a mapping from names to a pair of a function and a dependency list.
+        model_to_graph_and_functions:
+            Parse a model into metric functions and dependencies graph.
 
     Methods
     -------
         calculate_metrics:
-           Compute the metrics from a DataFrame.
+            Compute the metrics from a DataFrame without recalculating dependencies.
+        recalculate_metrics:
+            Compute metrics from a DataFrame, recalculating all dependencies.
         add_metrics:
             Add metric calculations to a DataFrame.
         get_metric_dependencies:
@@ -68,6 +72,7 @@ class MetricGraph:
 
     @classmethod
     def model_to_graph_and_functions(cls, model:  Mapping[Any, tuple[Callable, tuple[Hashable, ...]]]) -> tuple[dict[Any, Callable], dict[Any, tuple[Hashable, ...]]]:
+        """Parse a model into two dictionaries, the metric funcions and the dependency graph."""
         metric_functions = {}
         dependency_graph = {}
         for key, (fn, deps) in model.items():
@@ -82,13 +87,22 @@ class MetricGraph:
         data = [calculated_metrics[metric] for metric in dependencies]
         return calculator(*data)
 
-    def model(self, metrics: Optional[Iterable] = None) -> dict:
+    def model(self, metrics: Optional[Iterable] = None) -> dict[tuple[Callable, tuple[str, ...]]]:
+        """Return a dictionary associating each metric with it's callable and dependencies."""
         if metrics is None:
             metrics = list(self.dependency_graph)
         return {metric: (self.metric_functions[metric], self.dependency_graph[metric]) for metric in metrics}
 
     def calculate_metrics(self, df: pd.DataFrame, metrics: Iterable[Hashable]) -> Mapping[Any, ArrayLike]:
-        """Calculate the metrics from dataframe."""
+        """Calculate the metrics from dataframe.
+
+        Calculates all metrics passed (even if they are already in the data) but does
+        not recalculate dependencies, while recalculate_metrics will recalculate metrics
+        and all their dependencies, recursively.
+
+        This method is more efficient than recalculate metrics. Additionally, if "grandparent"
+        metrics are missing, calculations can still complete.
+        """
         dependencies = functools.reduce(lambda a, b: a.union(get_ancestors(b, self.dependency_graph, a)), metrics, set(df.columns.intersection(self.dependency_graph)))
         sorted_metrics_and_dependencies = self._sort_metrics_topologically(dependencies.union(metrics))
         calculated_metrics = {}
@@ -104,7 +118,15 @@ class MetricGraph:
         return {metric: calculated_metrics[metric] for metric in metrics}
 
     def recalculate_metrics(self, df: pd.DataFrame, metrics: Iterable[Hashable]) -> Mapping[Any, ArrayLike]:
-        """Recalculate the metrics from dataframe."""
+        """Recalculate the metrics from dataframe.
+
+        Calculates all metrics and their dependencies, recursively, and will raise an
+        KeyError if any metric is missing, while calculate_metrics only calculates
+        metrics explicitly passed and missing dependencies.
+
+        This method is useful following groupby-aggregate and other transformations
+        that may require downstream metrics to be recalculated.
+        """
         sorted_metrics_and_dependencies = self._sort_metrics_topologically(
             self.get_metric_dependencies(metrics).union(metrics)
         )
