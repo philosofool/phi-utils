@@ -38,8 +38,12 @@ def test_MetricGraph():
     result = metric_graph.calculate_metrics(data, ['BA'])
     assert 'AB' not in result
     assert np.allclose(result['BA'], np.divide([170, 150], [600 - 80, 600 - 100])), f"got {result}"
-    result_add = metric_graph.add_metrics(data, ['BA','AB'])
+    result_add = metric_graph.add_metrics(data, ['BA', 'AB'])
     assert all(k in result_add for k in ['BA', 'AB'])
+
+    # test: requesting metric calculation will recalculate existing metrics.
+    result_recalc = metric_graph.calculate_metrics(result_add.assign(BA=lambda BA: np.nan), ['BA'])
+    assert np.allclose(result_recalc['BA'], np.divide([170, 150], [600 - 80, 600 - 100])), f"got {result_recalc}"
 
 if __name__ == '__main__':
     test_get_ancestors()

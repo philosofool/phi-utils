@@ -92,11 +92,14 @@ class MetricGraph:
         dependencies = functools.reduce(lambda a, b: a.union(get_ancestors(b, self.dependency_graph, a)), metrics, set(df.columns.intersection(self.dependency_graph)))
         sorted_metrics_and_dependencies = self._sort_metrics_topologically(dependencies.union(metrics))
         calculated_metrics = {}
+        _metrics = set(metrics)  # fast membership.
         for metric in sorted_metrics_and_dependencies:
-            match df.get(metric):
-                case None:
+            match df.get(metric), metric in _metrics:
+                case None, _:
                     calculated_metrics[metric] = self._calculate_metric(metric, calculated_metrics)
-                case value:
+                case _, True:
+                    calculated_metrics[metric] = self._calculate_metric(metric, calculated_metrics)
+                case value, False:
                     calculated_metrics[metric] = value
         return {metric: calculated_metrics[metric] for metric in metrics}
 
