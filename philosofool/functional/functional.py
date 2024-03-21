@@ -36,4 +36,4 @@ def _compose_2(f: Callable, g: Callable) -> Callable:
 
 def compose_function(*funcs: Callable) -> Callable:
     """Compose a function, applying funcs from left to right."""
-    return functools.reduce(lambda f, g: _compose_2(f, g), funcs)
+    return functools.reduce(_compose_2, funcs)
